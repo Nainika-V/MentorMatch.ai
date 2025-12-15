@@ -14,6 +14,16 @@
   - Edit capabilities for roadmap modifications
   - Approval workflow before mentee access
 - **Impact**: Quality control and mentor oversight
+Observes:
+        ◦ Chat sentiment
+        ◦ Assessment scores
+        ◦ Interview feedback
+    • Automatically:
+        ◦ Refines roadmap difficulty
+        ◦ Adds/removes modules
+        ◦ Slows or accelerates pacing
+Example:
+“Mentee failed Module 3 twice → injects revision module + alerts mentor”
 
 ### 3. Smart Scheduling System
 - **Phase 1**: In-chat scheduler integration
@@ -31,6 +41,20 @@
   - Dynamic roadmap modification
   - Intelligent meeting frequency adjustment
 - **Impact**: Personalized learning pace optimization
+
+### 5. Interview Conductor Agent
+Upgrade your mock interview feature into a fully autonomous evaluator.
+Before interview
+    • Analyzes roadmap + weak areas
+    • Generates adaptive question flow
+During interview
+    • Changes difficulty based on response quality
+    • Adjusts tone (supportive vs challenging)
+After interview
+    • Sends mentor:
+        ◦ Skill delta report
+        ◦ Confidence analysis
+        ◦ Communication score trends
 
 ## 📋 Implementation Status
 - [ ] AI Assistant tab separation
