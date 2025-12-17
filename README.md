@@ -74,22 +74,22 @@ Keeps users informed with real-time alerts for new messages, scheduled sessions,
    cd mentormatch.ai
    ```
 
-2. **Install Frontend Dependencies**
+2. **Set Up Backend with Virtual Environment**
    ```bash
-   cd frontend
-   npm ci
-   ```
-
-3. **Install Backend Dependencies**
-   ```bash
-   cd ../backend
+   cd backend
    python3 -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
 
+3. **Install Frontend Dependencies**
+   ```bash
+   cd ../frontend
+   npm install --legacy-peer-deps
+   ```
+
 4. **Set Up Environment Variables**
-   - Create a `.env` file.
+   - Create a `.env` file in both `backend` and `frontend` directories.
    - Add the following variables (replace with your own keys):
      ```plaintext
      MONGO_URI=your-mongodb-uri
@@ -98,10 +98,10 @@ Keeps users informed with real-time alerts for new messages, scheduled sessions,
 
      FLASK_DEBUG=True
      SECRET_KEY=your-secret-key
-     PORT=your-port
-     FRONTEND_URL=your-frontend-url
+     PORT=5000
+     FRONTEND_URL=http://localhost:3000
 
-     GEMINI_API_KEY=your_gemini-api-key
+     GOOGLE_API_KEY=your-google-api-key
      ASSEMBLYAI_API_KEY=your-assemblyai-api-key
      SERPER_API_KEY=your-serper-api-key
      ```
@@ -112,14 +112,16 @@ Keeps users informed with real-time alerts for new messages, scheduled sessions,
      cd frontend
      npm run dev
      ```
-   - Start the backend:
+   - Start the backend (in a new terminal):
      ```bash
-     cd ../backend
+     cd backend
      source .venv/bin/activate
      python app.py
      ```
    - Open your browser and navigate to `http://localhost:3000` to access the frontend of the app.
    - The backend runs on `http://localhost:5000` by default.
+
+   **Note**: Make sure you have a valid MongoDB connection string in your `.env` file for the backend to work properly.
 
 ---
 
