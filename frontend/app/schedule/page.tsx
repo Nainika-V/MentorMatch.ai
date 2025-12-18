@@ -207,28 +207,31 @@ export default function SchedulePage() {
 
   useEffect(() => {
     const fetchMentees = async () => {
-      try {
-        // Fetch user profile to check role
-        const resProfile = await fetch("http://localhost:5000/api/auth/profile", {
-          credentials: "include",
-        })
-        const dataProfile = await resProfile.json()
-        if (dataProfile.user.role === "mentor") {
-          // Fetch mentees for mentor
+      // Only run if the user is a mentor
+      if (userRole === "mentor") {
+        try {
+          setLoading(true);
           const res = await fetch("http://localhost:5000/api/users/mentees", {
             credentials: "include",
-          })
-          if (res.ok) {
-            const menteeList = await res.json()
-            setMentees(menteeList)
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message || "Failed to fetch mentees");
           }
+          setMentees(data);
+        } catch (err: any) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        // Optionally handle error
       }
+    };
+
+    // We only want to run this after the user role has been determined.
+    if (userRole) {
+      fetchMentees();
     }
-    fetchMentees()
-  }, [])
+  }, [userRole]); // Dependency array ensures this runs when userRole changes
 
   // Helper to check if join is enabled for upcoming meetings
   const canJoin = (startTime: string) => {
