@@ -73,3 +73,5 @@ logs/
 
 ai-speech.mp3
 venv/
+.geminiignore
+GEMINI.md
