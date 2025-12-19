@@ -1,5 +1,6 @@
 from database.db import users, meetings, meeting_requests
 from services.chat_service import send_message
+from services.daily_service import create_daily_room
 from bson.objectid import ObjectId
 import datetime
 
@@ -171,13 +172,16 @@ class SchedulingAgent:
         else:
             title = "Mentorship Meeting"
 
+        room_info = create_daily_room()
+
         meeting = {
             "mentor_id": req["mentor_id"],
             "mentee_id": req["mentee_id"],
             "title": title,  # Added title
             "start_time": start,
             "end_time": end,
-            "meeting_link": self._generate_meet_link(),
+            "room_url": room_info['url'],
+            "room_name": room_info['name'],
             "status": "scheduled",
             "created_at": datetime.datetime.utcnow(),
         }
@@ -261,5 +265,4 @@ class SchedulingAgent:
 
         return slots[:5]
 
-    def _generate_meet_link(self):
-        return f"https://meet.fake/{ObjectId()}"
+

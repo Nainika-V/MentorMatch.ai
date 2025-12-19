@@ -7,15 +7,24 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { ModeToggle } from "./mode-toggle"
+import NotificationDropdown from "./notification-dropdown"
+import { useUser } from "@/hooks/useUser"
+import { api } from "@/lib/api"
+import { Skeleton } from "./ui/skeleton"
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { user, isAuthenticated, loading } = useUser()
+
+  const handleLogout = async () => {
+    await api.post("/auth/logout/", {})
+    window.location.href = "/"
+  }
 
   const navItems = [
     { name: "Home", href: "/" },
     { name: "About", href: "/about" },
-    //{ name: "Contact", href: "/contact" },
   ]
 
   return (
@@ -45,13 +54,34 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <ModeToggle />
-            <Button variant="outline" size="sm">
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-              <Link href="/signup">Sign up</Link>
-            </Button>
+            {loading ? (
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            ) : isAuthenticated ? (
+              <>
+                <ModeToggle />
+                <NotificationDropdown />
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  Log out
+                </Button>
+                <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <ModeToggle />
+                <Button variant="outline" size="sm">
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                  <Link href="/signup">Sign up</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Navigation Toggle */}
@@ -85,16 +115,26 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="pt-3 space-y-2">
-              <Button variant="outline" className="w-full">
-                <Link href="/login" className="w-full">
-                  Log in
-                </Link>
-              </Button>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                <Link href="/signup" className="w-full">
-                  Sign up
-                </Link>
-              </Button>
+             {loading ? (
+                <Skeleton className="h-9 w-full" />
+              ) : isAuthenticated ? (
+                <Button variant="outline" className="w-full" onClick={handleLogout}>
+                  Log out
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full">
+                    <Link href="/login" className="w-full">
+                      Log in
+                    </Link>
+                  </Button>
+                  <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                    <Link href="/signup" className="w-full">
+                      Sign up
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
