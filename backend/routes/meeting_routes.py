@@ -279,7 +279,10 @@ def get_past_meetings(current_user):
             {'mentor_id': user_id},
             {'mentee_id': user_id}
         ],
-        'end_time': {'$lt': now}
+        '$or': [
+            {'end_time': {'$lt': now}},
+            {'status': 'completed'}
+        ]
     }).sort('start_time', -1))
 
     result = []
@@ -307,6 +310,59 @@ def get_past_meetings(current_user):
         })
 
     return jsonify(result), 200
+
+@meeting_bp.route('/by-room/<room_name>', methods=['GET'])
+@token_required
+def get_meeting_by_room(current_user, room_name):
+    user_id = str(current_user['_id'])
+    
+    try:
+        meeting = meetings.find_one({
+            'room_name': room_name,
+            '$or': [
+                {'mentor_id': user_id},
+                {'mentee_id': user_id}
+            ]
+        })
+        
+        if not meeting:
+            return jsonify({'message': 'Meeting not found'}), 404
+        
+        return jsonify({'meeting_id': str(meeting['_id'])}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 400
+
+@meeting_bp.route('/<meeting_id>/transcript', methods=['POST'])
+@token_required
+def save_transcript(current_user, meeting_id):
+    user_id = str(current_user['_id'])
+    data = request.get_json()
+    transcript = data.get('transcript', [])
+
+    try:
+        meeting = meetings.find_one({'_id': ObjectId(meeting_id)})
+        if not meeting:
+            return jsonify({'message': 'Meeting not found'}), 404
+
+        # Check if user is a participant
+        if meeting['mentor_id'] != user_id and meeting['mentee_id'] != user_id:
+            return jsonify({'message': 'Unauthorized'}), 403
+
+        # Update meeting with transcript and mark as completed
+        meetings.update_one(
+            {'_id': ObjectId(meeting_id)},
+            {
+                '$set': {
+                    'transcript': transcript,
+                    'status': 'completed',
+                    'ended_at': datetime.datetime.utcnow()
+                }
+            }
+        )
+
+        return jsonify({'message': 'Transcript saved successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 400
 
 @meeting_bp.route('/current', methods=['GET'])
 @token_required
