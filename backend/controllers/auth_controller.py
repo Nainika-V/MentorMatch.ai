@@ -141,6 +141,8 @@ class AuthController:
     @staticmethod
     def get_profile(current_user):
         """Get current user profile"""
+        print("--- get_profile called ---")
+        print("Current user:", current_user)
         try:
             user_db_object = current_user
 
@@ -165,6 +167,7 @@ class AuthController:
             return jsonify({'user': api_user_object}), 200
 
         except Exception as e:
+            print("Error in get_profile:", e)
             return jsonify({'error': 'Failed to get profile', 'details': str(e)}), 500
 
     @staticmethod

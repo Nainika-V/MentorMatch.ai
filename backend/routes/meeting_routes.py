@@ -275,13 +275,19 @@ def get_past_meetings(current_user):
     now = datetime.datetime.utcnow()
 
     meetings_list = list(meetings.find({
-        '$or': [
-            {'mentor_id': user_id},
-            {'mentee_id': user_id}
-        ],
-        '$or': [
-            {'end_time': {'$lt': now}},
-            {'status': 'completed'}
+        '$and': [
+            {
+                '$or': [
+                    {'mentor_id': user_id},
+                    {'mentee_id': user_id}
+                ]
+            },
+            {
+                '$or': [
+                    {'end_time': {'$lt': now}},
+                    {'status': 'completed'}
+                ]
+            }
         ]
     }).sort('start_time', -1))
 

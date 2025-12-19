@@ -85,7 +85,8 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Navigation Toggle */}
-          <div className="flex items-center md:hidden space-x-4">
+          <div className="flex items-center md:hidden space-x-2">
+            {isAuthenticated && <NotificationDropdown />}
             <ModeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
