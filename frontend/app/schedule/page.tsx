@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -28,7 +29,6 @@ export default function SchedulePage() {
   // Scheduling form state
   const [meetingTitle, setMeetingTitle] = useState("")
   const [meetingAgenda, setMeetingAgenda] = useState("")
-  const [meetingLink, setMeetingLink] = useState("")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [selectedMentee, setSelectedMentee] = useState("")
@@ -125,7 +125,6 @@ export default function SchedulePage() {
           mentee_id: selectedMentee,
           title: meetingTitle,
           description: meetingAgenda,
-          meeting_link: meetingLink,
           start_time: startTime,
           end_time: endTime,
         }),
@@ -135,7 +134,6 @@ export default function SchedulePage() {
       setSuccess("Meeting scheduled successfully!")
       setMeetingTitle("")
       setMeetingAgenda("")
-      setMeetingLink("")
       setStartTime("")
       setEndTime("")
       setSelectedMentee("")
@@ -154,7 +152,6 @@ export default function SchedulePage() {
     setEditForm({
       title: meeting.title,
       description: meeting.description,
-      meeting_link: meeting.meeting_link,
       start_time: meeting.start_time.slice(0, 16), // for input type="datetime-local"
       end_time: meeting.end_time.slice(0, 16),
     })
@@ -294,14 +291,14 @@ export default function SchedulePage() {
                         </div>
                         <div className="flex items-center">
                           <Video className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
-                          <Button
+<Button
                             asChild
                             className="bg-purple-600 hover:bg-purple-700"
                             size="sm"
                           >
-                            <a href={meeting.meeting_link} target="_blank" rel="noopener noreferrer">
+                            <Link href={`/daily-meet/${encodeURIComponent(meeting.room_url)}`}>
                               Join Now
-                            </a>
+                            </Link>
                           </Button>
                         </div>
                       </div>
@@ -340,13 +337,6 @@ export default function SchedulePage() {
                             <Input
                               value={editForm.title}
                               onChange={(e) => setEditForm((f: any) => ({ ...f, title: e.target.value }))}
-                            />
-                          </div>
-                          <div>
-                            <Label>Meeting Link</Label>
-                            <Input
-                              value={editForm.meeting_link}
-                              onChange={(e) => setEditForm((f: any) => ({ ...f, meeting_link: e.target.value }))}
                             />
                           </div>
                           <div>
@@ -426,9 +416,9 @@ export default function SchedulePage() {
                             size="sm"
                             disabled={!canJoin(meeting.start_time)}
                           >
-                            <a href={meeting.meeting_link} target="_blank" rel="noopener noreferrer">
+                            <Link href={`/daily-meet/${encodeURIComponent(meeting.room_url)}`}>
                               Join Now
-                            </a>
+                            </Link>
                           </Button>
                         </div>
                       </div>
@@ -467,13 +457,6 @@ export default function SchedulePage() {
                             <Input
                               value={editForm.title}
                               onChange={(e) => setEditForm((f: any) => ({ ...f, title: e.target.value }))}
-                            />
-                          </div>
-                          <div>
-                            <Label>Meeting Link</Label>
-                            <Input
-                              value={editForm.meeting_link}
-                              onChange={(e) => setEditForm((f: any) => ({ ...f, meeting_link: e.target.value }))}
                             />
                           </div>
                           <div>
@@ -610,15 +593,6 @@ export default function SchedulePage() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="meeting-link">Meeting Link</Label>
-                          <Input
-                            id="meeting-link"
-                            placeholder="e.g. https://meet.google.com/..."
-                            value={meetingLink}
-                            onChange={(e) => setMeetingLink(e.target.value)}
-                          />
-                        </div>
-                        <div>
                           <Label htmlFor="meeting-agenda">Agenda (Optional)</Label>
                           <Textarea
                             id="meeting-agenda"
@@ -657,7 +631,7 @@ export default function SchedulePage() {
                     </Button>
                     <Button
                       className="bg-purple-600 hover:bg-purple-700"
-                      disabled={!selectedMentee || !meetingTitle || !meetingLink || !startTime || !endTime}
+                      disabled={!selectedMentee || !meetingTitle || !startTime || !endTime}
                       onClick={handleScheduleMeeting}
                     >
                       Schedule Meeting
