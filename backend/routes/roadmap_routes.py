@@ -8,6 +8,7 @@ from middleware.auth_middleware import token_required
 from services.ai_service import generate_roadmap
 from services.assessment_service import get_assessment, submit_score
 from models.roadmap import RoadmapModel
+from services.roadmap_service import suggest_roadmap_update_from_assessment
 
 roadmap_bp = Blueprint('roadmaps', __name__)
 
@@ -444,13 +445,61 @@ def submit_mcq_score(current_user, roadmap_id, module_index):
     if best_score is None:
         return jsonify({"message": "Failed to submit score"}), 500
     
+    # --- Notification and AI-Update Logic ---
+    update_message = ""
+    # If score is low, trigger AI roadmap update suggestion
+    if score < 80:
+        _, update_message = suggest_roadmap_update_from_assessment(
+            roadmap_id, module_index, score, questions, selected_answers
+        )
+
+    # Always send a notification to the mentor about the assessment result
+    try:
+        # Find mentor to notify
+        mentor_id = None
+        # Handle various ways mentor ID might be stored
+        if 'mentor_id' in roadmap:
+            mentor_id = str(roadmap['mentor_id'])
+        elif 'approvalStatus' in roadmap and 'mentorId' in roadmap['approvalStatus']:
+            mentor_id = str(roadmap['approvalStatus']['mentorId'])
+        
+        if mentor_id:
+            module_title = roadmap.get('modules', [])[module_index].get('title', 'a module')
+            mentee_name = current_user.get('name', 'Your mentee')
+
+            # Customize notification based on score
+            if score >= 80:
+                notification_type = 'assessment_passed'
+                message = f"{mentee_name} passed the assessment for '{module_title}' with a score of {score}%."
+            else:
+                notification_type = 'assessment_failed'
+                message = f"{mentee_name} failed the assessment for '{module_title}' with {score}%. AI has suggested roadmap updates for your review."
+
+            notifications.insert_one({
+                'type': notification_type,
+                'from_user_id': user_id,
+                'to_user_id': mentor_id,
+                'from_username': current_user.get('username', 'System'),
+                'message': message, # Generic message field for display
+                'roadmap_id': roadmap_id,
+                'module_index': module_index,
+                'score': score,
+                'created_at': datetime.datetime.utcnow(),
+                'read': False
+            })
+    except Exception as e:
+        # Log if notification fails, but don't block the response to the user
+        print(f"Failed to send notification: {e}")
+    # --- End of Notification Logic ---
+
     return jsonify({
         "message": "Assessment submitted successfully",
         "current_score": score,
         "best_score": best_score,
         "correct_answers": correct_count,
         "total_questions": len(questions),
-        "passed": score >= 80
+        "passed": score >= 80,
+        "update_message": update_message
     })
 
 @roadmap_bp.route('/user/<user_id>', methods=['GET'])
