@@ -5,9 +5,25 @@ import uuid
 
 from database.db import meetings, users, notifications
 from middleware.auth_middleware import token_required
-from services.google_meet_service import create_google_meet
+from services.daily_service import create_daily_room, generate_meeting_token
 
 meeting_bp = Blueprint('meetings', __name__)
+
+@meeting_bp.route('/daily/token', methods=['POST'])
+@token_required
+def get_daily_token(current_user):
+    data = request.get_json()
+    room_name = data.get('room_name')
+    if not room_name:
+        return jsonify({'message': 'room_name is required'}), 400
+
+    user_name = current_user.get('name', 'Guest')
+
+    try:
+        token = generate_meeting_token(room_name, user_name)
+        return jsonify({'token': token})
+    except Exception as e:
+        return jsonify({'message': f'Error generating token: {str(e)}'}), 500
 
 @meeting_bp.route('/', methods=['POST'])
 @token_required
@@ -17,14 +33,13 @@ def schedule_meeting(current_user):
     mentee_id = data.get('mentee_id')
     title = data.get('title')
     description = data.get('description', '')
-    meeting_link = data.get('meeting_link')
     start_time = data.get('start_time')
     end_time = data.get('end_time')
 
     if current_user['role'] != 'mentor':
         return jsonify({'message': 'Only mentors can schedule meetings'}), 403
 
-    if not mentee_id or not title or not meeting_link or not start_time or not end_time:
+    if not mentee_id or not title or not start_time or not end_time:
         return jsonify({'message': 'Missing required fields'}), 400
 
     try:
@@ -35,12 +50,16 @@ def schedule_meeting(current_user):
         start_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
         end_dt = datetime.datetime.fromisoformat(end_time.replace('Z', '+00:00'))
 
+        # Create a Daily.co room
+        room_info = create_daily_room()
+
         meeting = {
             'mentor_id': mentor_id,
             'mentee_id': mentee_id,
             'title': title,
             'description': description,
-            'meeting_link': meeting_link,
+            'room_url': room_info['url'],
+            'room_name': room_info['name'],
             'start_time': start_dt,
             'end_time': end_dt,
             'status': 'scheduled',
@@ -88,7 +107,7 @@ def get_meetings(current_user):
             "meeting_id": str(meeting['_id']),
             "title": meeting['title'],
             "description": meeting.get('description', ''),
-            "meeting_link": meeting.get('meeting_link', ''),
+            "room_url": meeting.get('room_url', ''),
             "start_time": meeting['start_time'].isoformat(),
             "end_time": meeting['end_time'].isoformat(),
             "status": meeting.get('status', ''),
@@ -146,8 +165,6 @@ def update_meeting(current_user, meeting_id):
             update_data['title'] = data['title']
         if 'description' in data:
             update_data['description'] = data['description']
-        if 'meeting_link' in data:
-            update_data['meeting_link'] = data['meeting_link']
         if 'start_time' in data:
             update_data['start_time'] = datetime.datetime.fromisoformat(data['start_time'])
         if 'end_time' in data:
@@ -239,7 +256,7 @@ def get_upcoming_meetings(current_user):
             "meeting_id": str(meeting['_id']),
             "title": meeting['title'],
             "description": meeting.get('description', ''),
-            "meeting_link": meeting.get('meeting_link', ''),
+            "room_url": meeting.get('room_url', ''),
             "start_time": meeting['start_time'].isoformat(),
             "end_time": meeting['end_time'].isoformat(),
             "with": {
@@ -258,11 +275,20 @@ def get_past_meetings(current_user):
     now = datetime.datetime.utcnow()
 
     meetings_list = list(meetings.find({
-        '$or': [
-            {'mentor_id': user_id},
-            {'mentee_id': user_id}
-        ],
-        'end_time': {'$lt': now}
+        '$and': [
+            {
+                '$or': [
+                    {'mentor_id': user_id},
+                    {'mentee_id': user_id}
+                ]
+            },
+            {
+                '$or': [
+                    {'end_time': {'$lt': now}},
+                    {'status': 'completed'}
+                ]
+            }
+        ]
     }).sort('start_time', -1))
 
     result = []
@@ -278,7 +304,7 @@ def get_past_meetings(current_user):
             "meeting_id": str(meeting['_id']),
             "title": meeting['title'],
             "description": meeting.get('description', ''),
-            "meeting_link": meeting.get('meeting_link', ''),
+            "room_url": meeting.get('room_url', ''),
             "start_time": meeting['start_time'].isoformat(),
             "end_time": meeting['end_time'].isoformat(),
             "status": meeting.get('status', ''),
@@ -290,6 +316,59 @@ def get_past_meetings(current_user):
         })
 
     return jsonify(result), 200
+
+@meeting_bp.route('/by-room/<room_name>', methods=['GET'])
+@token_required
+def get_meeting_by_room(current_user, room_name):
+    user_id = str(current_user['_id'])
+    
+    try:
+        meeting = meetings.find_one({
+            'room_name': room_name,
+            '$or': [
+                {'mentor_id': user_id},
+                {'mentee_id': user_id}
+            ]
+        })
+        
+        if not meeting:
+            return jsonify({'message': 'Meeting not found'}), 404
+        
+        return jsonify({'meeting_id': str(meeting['_id'])}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 400
+
+@meeting_bp.route('/<meeting_id>/transcript', methods=['POST'])
+@token_required
+def save_transcript(current_user, meeting_id):
+    user_id = str(current_user['_id'])
+    data = request.get_json()
+    transcript = data.get('transcript', [])
+
+    try:
+        meeting = meetings.find_one({'_id': ObjectId(meeting_id)})
+        if not meeting:
+            return jsonify({'message': 'Meeting not found'}), 404
+
+        # Check if user is a participant
+        if meeting['mentor_id'] != user_id and meeting['mentee_id'] != user_id:
+            return jsonify({'message': 'Unauthorized'}), 403
+
+        # Update meeting with transcript and mark as completed
+        meetings.update_one(
+            {'_id': ObjectId(meeting_id)},
+            {
+                '$set': {
+                    'transcript': transcript,
+                    'status': 'completed',
+                    'ended_at': datetime.datetime.utcnow()
+                }
+            }
+        )
+
+        return jsonify({'message': 'Transcript saved successfully'}), 200
+    except Exception as e:
+        return jsonify({'message': f'Error: {str(e)}'}), 400
 
 @meeting_bp.route('/current', methods=['GET'])
 @token_required
@@ -320,7 +399,7 @@ def get_current_meetings(current_user):
             "meeting_id": str(meeting['_id']),
             "title": meeting['title'],
             "description": meeting.get('description', ''),
-            "meeting_link": meeting.get('meeting_link', ''),
+            "room_url": meeting.get('room_url', ''),
             "start_time": meeting['start_time'].isoformat(),
             "end_time": meeting['end_time'].isoformat(),
             "status": meeting.get('status', ''),
