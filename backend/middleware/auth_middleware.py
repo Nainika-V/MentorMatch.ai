@@ -8,6 +8,8 @@ def token_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = None
+        print("--- Headers:", request.headers)
+        print("--- Cookies:", request.cookies)
 
         # 1. Try to fetch from cookie
         if 'auth_token' in request.cookies:

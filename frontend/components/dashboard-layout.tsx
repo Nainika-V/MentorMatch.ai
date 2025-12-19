@@ -190,7 +190,7 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
             </button>
             <div className="flex-1 md:flex md:items-center md:justify-end">
               <div className="flex items-center space-x-4">
-                {/* <NotificationDropdown /> */}
+                <NotificationDropdown />
                 {/* <Button variant="ghost" size="icon">
                   <Settings className="h-5 w-5" />
                 </Button> */}
