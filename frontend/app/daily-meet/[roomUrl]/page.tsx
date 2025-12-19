@@ -13,6 +13,8 @@ export default function DailyMeetPage() {
     const [token, setToken] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [transcript, setTranscript] = useState<any[]>([]);
+    const [meetingId, setMeetingId] = useState('');
 
     useEffect(() => {
         if (!roomUrl) {
@@ -45,6 +47,15 @@ export default function DailyMeetPage() {
                 const { token: meetingToken } = await tokenRes.json();
                 setToken(meetingToken);
 
+                // Get meeting ID by room name
+                const meetingRes = await fetch(`http://localhost:5000/api/meetings/by-room/${roomName}`, {
+                    credentials: 'include'
+                });
+                if (meetingRes.ok) {
+                    const meetingData = await meetingRes.json();
+                    setMeetingId(meetingData.meeting_id);
+                }
+
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -65,14 +76,52 @@ export default function DailyMeetPage() {
 
     const urlWithToken = `${roomUrl}?t=${token}`;
 
+    const handleEndMeeting = async () => {
+        console.log('BUTTON CLICKED!'); // This should appear first
+        console.log('End meeting clicked. Meeting ID:', meetingId, 'Transcript length:', transcript.length);
+        
+        if (meetingId && transcript.length > 0) {
+            try {
+                console.log('Sending transcript to backend...');
+                const response = await fetch(`http://localhost:5000/api/meetings/${meetingId}/transcript`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ transcript })
+                });
+                
+                if (response.ok) {
+                    console.log('Transcript saved successfully');
+                } else {
+                    console.error('Failed to save transcript:', await response.text());
+                }
+            } catch (err) {
+                console.error('Failed to save transcript:', err);
+            }
+        } else {
+            console.log('No meeting ID or transcript to save');
+        }
+        router.push('/schedule');
+    };
+
     return (
-        <div className="relative h-screen w-screen">
-            <DailyMeeting roomUrl={urlWithToken} />
-            <div className="absolute top-4 right-4 z-10">
-                <Button onClick={() => router.push('/schedule')} variant="destructive">
+        <>
+            <div className="absolute top-4 right-4 z-[9999] pointer-events-auto">
+                <Button 
+                    onClick={handleEndMeeting} 
+                    variant="destructive" 
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 text-lg"
+                >
                     End Meeting
                 </Button>
             </div>
-        </div>
+            <div className="relative h-screen w-screen">
+                <DailyMeeting 
+                    roomUrl={urlWithToken} 
+                    onTranscriptUpdate={setTranscript}
+                    onMeetingIdUpdate={setMeetingId}
+                />
+            </div>
+        </>
     );
 }
