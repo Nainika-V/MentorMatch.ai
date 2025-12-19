@@ -1,6 +1,19 @@
 from models.roadmap import RoadmapModel
 from services.ai_service import update_roadmap
 import json
+from bson import ObjectId
+from datetime import datetime
+
+def make_serializable(obj):
+    if isinstance(obj, list):
+        return [make_serializable(item) for item in obj]
+    if isinstance(obj, dict):
+        return {key: make_serializable(value) for key, value in obj.items()}
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
 
 def suggest_roadmap_update_from_assessment(roadmap_id: str, 
       module_index: int, score: int, questions: list, answers: list):
@@ -29,7 +42,8 @@ def suggest_roadmap_update_from_assessment(roadmap_id: str,
                             "or break down complex topics to help the mentee better understand these areas. ""You may add new subtopics or suggest better resources.")
 
              # Use the existing AI service to update the roadmap
-            updated_roadmap_data = update_roadmap(json.dumps(roadmap),instructions)
+            roadmap_serializable = make_serializable(roadmap)
+            updated_roadmap_data = update_roadmap(json.dumps(roadmap_serializable),instructions)
             # Replace the old roadmap with the new one
             RoadmapModel.replace_roadmap_by_id(roadmap_id, updated_roadmap_data)
             return updated_roadmap_data, "Roadmap updated based on assessment performance."

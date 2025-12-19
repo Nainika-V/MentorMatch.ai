@@ -1,95 +1,115 @@
-"use client"
+"use client";
 
-import { useRef, useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Textarea } from "@/components/ui/textarea"
-import { PaperclipIcon, Send, Loader2, CheckCircle, Sparkles } from "lucide-react"
-import DashboardLayout from "@/components/dashboard-layout"
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  PaperclipIcon,
+  Send,
+  Loader2,
+  CheckCircle,
+  Sparkles,
+} from "lucide-react";
+import { MeetingRequestCard } from "@/components/ui/meeting-request-card";
+import DashboardLayout from "@/components/dashboard-layout";
 
 interface User {
-  id: string
-  name: string
-  username: string
-  role: string
+  id: string;
+  name: string;
+  username: string;
+  role: string;
 }
 
 interface Message {
-  _id: string
-  sender_id: string
-  receiver_id: string
-  content: string
-  timestamp: string
+  _id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  timestamp: string;
+  type?: string;
+  meta?: any;
 }
 
 export default function ChatPage() {
   // State variables
-  const [userRole, setUserRole] = useState<"mentor" | "mentee">("mentee")
-  const [userId, setUserId] = useState<string>("")
-  const [userName, setUserName] = useState<string>("")
-  const [mentees, setMentees] = useState<User[]>([])
-  const [mentor, setMentor] = useState<User | null>(null)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [message, setMessage] = useState("")
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [hasMounted, setHasMounted] = useState(false)
-  const [isFetchingMore, setIsFetchingMore] = useState(false)
-  const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false)
-  const [roadmapGenerated, setRoadmapGenerated] = useState(false)
-  const [showAIMention, setShowAIMention] = useState(false)
-  const [mentionIndex, setMentionIndex] = useState(0)
-  
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userRole, setUserRole] = useState<"mentor" | "mentee">("mentee");
+  const [userId, setUserId] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [mentees, setMentees] = useState<User[]>([]);
+  const [mentor, setMentor] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [message, setMessage] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
+  const [roadmapGenerated, setRoadmapGenerated] = useState(false);
+  const [showAIMention, setShowAIMention] = useState(false);
+  const [mentionIndex, setMentionIndex] = useState(0);
+
   // Refs
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const chatContainerRef = useRef<HTMLDivElement>(null)
-  const pollingRef = useRef<NodeJS.Timeout | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Prevent hydration mismatch
   useEffect(() => {
-    setHasMounted(true)
-  }, [])
+    setHasMounted(true);
+  }, []);
 
   // Fetcch user profile and initialize chat
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        setLoading(true)
-        setError(null)
-        
+        setLoading(true);
+        setError(null);
+
         const response = await fetch("http://localhost:5000/api/auth/profile", {
           credentials: "include",
-        })
-        
+        });
+
         if (!response.ok) {
-          throw new Error("Failed to fetch profile")
+          throw new Error("Failed to fetch profile");
         }
-        
-        const data = await response.json()
-        const user = data.user
-        
-        setUserId(user.id)
-        setUserName(user.name)
-        setUserRole(user.role)
-        
+
+        const data = await response.json();
+        const user = data.user;
+
+        setUserId(user.id);
+        setUserName(user.name);
+        setUserEmail(user.email);
+        setUserRole(user.role);
+
         if (user.role === "mentor" && user.mentees && user.mentees.length > 0) {
           // Fetch mentees with their names using the API
           try {
-            const menteesResponse = await fetch("http://localhost:5000/api/users/mentees", {
-              credentials: "include",
-            })
-            
+            const menteesResponse = await fetch(
+              "http://localhost:5000/api/users/mentees",
+              {
+                credentials: "include",
+              }
+            );
+
             if (menteesResponse.ok) {
-              const menteesData = await menteesResponse.json()
-              setMentees(menteesData)
-              
+              const menteesData = await menteesResponse.json();
+              setMentees(menteesData);
+
               if (menteesData.length > 0) {
-                setSelectedUser(menteesData[0])
+                setSelectedUser(menteesData[0]);
               }
             } else {
               // Fallback to using IDs from profile if API fails
@@ -97,192 +117,206 @@ export default function ChatPage() {
                 id: menteeId,
                 name: `Mentee ${menteeId.slice(-4)}`,
                 username: `mentee_${menteeId.slice(-4)}`,
-                role: "mentee"
-              }))
-              setMentees(menteeUsers)
-              setSelectedUser(menteeUsers[0])
+                role: "mentee",
+              }));
+              setMentees(menteeUsers);
+              setSelectedUser(menteeUsers[0]);
             }
           } catch (error) {
-            console.error("Error fetching mentees:", error)
+            console.error("Error fetching mentees:", error);
             // Fallback to using IDs from profile
             const menteeUsers = user.mentees.map((menteeId: string) => ({
               id: menteeId,
               name: `Mentee ${menteeId.slice(-4)}`,
               username: `mentee_${menteeId.slice(-4)}`,
-              role: "mentee"
-            }))
-            setMentees(menteeUsers)
-            setSelectedUser(menteeUsers[0])
+              role: "mentee",
+            }));
+            setMentees(menteeUsers);
+            setSelectedUser(menteeUsers[0]);
           }
-          
-        } else if (user.role === "mentee" && user.mentors && user.mentors.length > 0) {
+        } else if (
+          user.role === "mentee" &&
+          user.mentors &&
+          user.mentors.length > 0
+        ) {
           // Fetch mentor with their name using the API
           try {
-            const mentorResponse = await fetch("http://localhost:5000/api/users/mymentor", {
-              credentials: "include",
-            })
-            
+            const mentorResponse = await fetch(
+              "http://localhost:5000/api/users/mymentor",
+              {
+                credentials: "include",
+              }
+            );
+
             if (mentorResponse.ok) {
-              const mentorData = await mentorResponse.json()
-              setMentor(mentorData)
-              setSelectedUser(mentorData)
+              const mentorData = await mentorResponse.json();
+              setMentor(mentorData);
+              setSelectedUser(mentorData);
             } else {
               // Fallback to using ID from profile if API fails
-              const mentorId = user.mentors[0]
+              const mentorId = user.mentors[0];
               const mentorUser = {
                 id: mentorId,
                 name: `Mentor ${mentorId.slice(-4)}`,
                 username: `mentor_${mentorId.slice(-4)}`,
-                role: "mentor"
-              }
-              setMentor(mentorUser)
-              setSelectedUser(mentorUser)
+                role: "mentor",
+              };
+              setMentor(mentorUser);
+              setSelectedUser(mentorUser);
             }
           } catch (error) {
-            console.error("Error fetching mentor:", error)
+            console.error("Error fetching mentor:", error);
             // Fallback to using ID from profile
-            const mentorId = user.mentors[0]
+            const mentorId = user.mentors[0];
             const mentorUser = {
               id: mentorId,
               name: `Mentor ${mentorId.slice(-4)}`,
               username: `mentor_${mentorId.slice(-4)}`,
-              role: "mentor"
-            }
-            setMentor(mentorUser)
-            setSelectedUser(mentorUser)
+              role: "mentor",
+            };
+            setMentor(mentorUser);
+            setSelectedUser(mentorUser);
           }
         }
       } catch (error) {
-        console.error("Error fetching profile:", error)
-        setError("Failed to load profile")
+        console.error("Error fetching profile:", error);
+        setError("Failed to load profile");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    
+    };
+
     if (hasMounted) {
-      fetchProfile()
+      fetchProfile();
     }
-  }, [hasMounted])
+  }, [hasMounted]);
 
   // Fetch messages function
-  const fetchMessages = useCallback(async (otherId: string, pageNum: number, reset: boolean = false) => {
-    if (!otherId) return
-    
-    try {
-      const response = await fetch(`http://localhost:5000/api/chat/get/${otherId}/${pageNum}`, {
-        credentials: "include",
-      })
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch messages")
+  const fetchMessages = useCallback(
+    async (otherId: string, pageNum: number, reset: boolean = false) => {
+      if (!otherId) return;
+
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/chat/get/${otherId}/${pageNum}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch messages");
+        }
+
+        const data = await response.json();
+        setHasMore(!data.isLastPage);
+
+        if (reset) {
+          setMessages(data.messages || []);
+          setPage(1);
+        } else {
+          setMessages((prev) => [...(data.messages || []), ...prev]);
+          setPage(pageNum);
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+        setError("Failed to load messages");
+      } finally {
+        setIsFetchingMore(false);
       }
-      
-      const data = await response.json()
-      setHasMore(!data.isLastPage)
-      
-      if (reset) {
-        setMessages(data.messages || [])
-        setPage(1)
-      } else {
-        setMessages(prev => [...(data.messages || []), ...prev])
-        setPage(pageNum)
-      }
-    } catch (error) {
-      console.error("Error fetching messages:", error)
-      setError("Failed to load messages")
-    } finally {
-      setIsFetchingMore(false)
-    }
-  }, [])
+    },
+    []
+  );
 
   // Load messages when selectedUser changes
   useEffect(() => {
-    if (!selectedUser?.id || !hasMounted) return
-    
-    setMessages([])
-    setPage(1)
-    setHasMore(true)
-    fetchMessages(selectedUser.id, 1, true)
-    
+    if (!selectedUser?.id || !hasMounted) return;
+
+    setMessages([]);
+    setPage(1);
+    setHasMore(true);
+    fetchMessages(selectedUser.id, 1, true);
+
     // Scroll to bottom after a short delay
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" })
-    }, 100)
-  }, [selectedUser, fetchMessages, hasMounted])
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }, 100);
+  }, [selectedUser, fetchMessages, hasMounted]);
 
   // Polling for new messages every 15 seconds
   useEffect(() => {
-    if (!selectedUser?.id || !hasMounted) return
-    
+    if (!selectedUser?.id || !hasMounted) return;
+
     // Clear existing polling
     if (pollingRef.current) {
-      clearInterval(pollingRef.current)
+      clearInterval(pollingRef.current);
     }
-    
+
     pollingRef.current = setInterval(() => {
-      fetchMessages(selectedUser.id, 1, true)
-    }, 1000)
-    
+      fetchMessages(selectedUser.id, 1, true);
+    }, 1000);
+
     return () => {
       if (pollingRef.current) {
-        clearInterval(pollingRef.current)
+        clearInterval(pollingRef.current);
       }
-    }
-  }, [selectedUser, fetchMessages, hasMounted])
+    };
+  }, [selectedUser, fetchMessages, hasMounted]);
 
   // Infinite scroll for loading older messages
   useEffect(() => {
-    if (!hasMounted) return
-    
+    if (!hasMounted) return;
+
     const handleScroll = () => {
       if (
         !chatContainerRef.current ||
         !selectedUser?.id ||
         !hasMore ||
         isFetchingMore
-      ) return
-      
+      )
+        return;
+
       if (chatContainerRef.current.scrollTop === 0) {
-        setIsFetchingMore(true)
-        fetchMessages(selectedUser.id, page + 1, false)
+        setIsFetchingMore(true);
+        fetchMessages(selectedUser.id, page + 1, false);
       }
-    }
-    
-    const container = chatContainerRef.current
+    };
+
+    const container = chatContainerRef.current;
     if (container) {
-      container.addEventListener("scroll", handleScroll)
-      return () => container.removeEventListener("scroll", handleScroll)
+      container.addEventListener("scroll", handleScroll);
+      return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [selectedUser, page, hasMore, isFetchingMore, fetchMessages, hasMounted])
+  }, [selectedUser, page, hasMore, isFetchingMore, fetchMessages, hasMounted]);
 
   // Send message function with AI Assistant detection
   const handleSendMessage = async () => {
-    if (!message.trim() || !selectedUser?.id) return
-    
-    const messageContent = message.trim()
-    
+    if (!message.trim() || !selectedUser?.id) return;
+
+    const messageContent = message.trim();
+
     // Check if this is an AI Assistant request from a mentor
-    const isAIRequest = messageContent.includes("@AI Assistant") && userRole === "mentor"
-    
-    setMessage("")
-    
+    const isAIRequest =
+      messageContent.includes("@AI Assistant") && userRole === "mentor";
+
+    setMessage("");
+
     // Optimistic update
     const tempMessage: Message = {
       _id: `temp-${Date.now()}`,
       sender_id: userId,
       receiver_id: selectedUser.id,
       content: messageContent,
-      timestamp: new Date().toISOString()
-    }
-    
-    setMessages(prev => [...prev, tempMessage])
-    
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, tempMessage]);
+
     // Scroll to bottom
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, 100)
-    
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+
     try {
       const response = await fetch("http://localhost:5000/api/chat/send", {
         method: "POST",
@@ -294,195 +328,226 @@ export default function ChatPage() {
           receiver_id: selectedUser.id,
           content: messageContent,
         }),
-      })
-      
+      });
+
       if (!response.ok) {
-        throw new Error("Failed to send message")
+        throw new Error("Failed to send message");
       }
-      
+
       // Refresh messages to get the actual message with correct timestamp
-      await fetchMessages(selectedUser.id, 1, true)
-      
+      await fetchMessages(selectedUser.id, 1, true);
+
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-      }, 100)
-      
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+
       // If this is an AI Assistant request, trigger roadmap generation
       if (isAIRequest) {
-        await handleAIRoadmapGeneration()
+        await handleAIRoadmapGeneration();
       }
-      
     } catch (error) {
-      console.error("Error sending message:", error)
-      setError("Failed to send message")
+      console.error("Error sending message:", error);
+      setError("Failed to send message");
       // Remove the temporary message on error
-      setMessages(prev => prev.filter(msg => msg._id !== tempMessage._id))
-      setMessage(messageContent) // Restore the message
+      setMessages((prev) => prev.filter((msg) => msg._id !== tempMessage._id));
+      setMessage(messageContent); // Restore the message
     }
-  }
+  };
 
   // Handle AI roadmap generation
   const handleAIRoadmapGeneration = async () => {
-    if (!selectedUser?.id || userRole !== "mentor") return
-    
-    setIsGeneratingRoadmap(true)
-    setRoadmapGenerated(false)
-    setError(null)
-    
+    if (!selectedUser?.id || userRole !== "mentor") return;
+
+    setIsGeneratingRoadmap(true);
+    setRoadmapGenerated(false);
+    setError(null);
+
     try {
-      console.log("Fetching chat history for mentee:", selectedUser.id)
-      
+      console.log("Fetching chat history for mentee:", selectedUser.id);
+
       // Test basic connectivity first
       try {
-        const testResponse = await fetch("http://localhost:5000/api/auth/profile", {
-          credentials: "include",
-        })
-        console.log("Backend connectivity test:", testResponse.status)
+        const testResponse = await fetch(
+          "http://localhost:5000/api/auth/profile",
+          {
+            credentials: "include",
+          }
+        );
+        console.log("Backend connectivity test:", testResponse.status);
       } catch (connectError) {
-        console.error("Backend connection failed:", connectError)
-        throw new Error("Cannot connect to backend server. Please check if the server is running on port 5000.")
+        console.error("Backend connection failed:", connectError);
+        throw new Error(
+          "Cannot connect to backend server. Please check if the server is running on port 5000."
+        );
       }
-      
+
       // First, get the chat history
-      const historyResponse = await fetch(`http://localhost:5000/api/chat/history/${selectedUser.id}`, {
-        credentials: "include",
-      })
-      
-      console.log("History response status:", historyResponse.status)
-      
+      const historyResponse = await fetch(
+        `http://localhost:5000/api/chat/history/${selectedUser.id}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      console.log("History response status:", historyResponse.status);
+
       if (!historyResponse.ok) {
-        const errorText = await historyResponse.text()
-        console.error("Chat history error:", errorText)
-        throw new Error(`Failed to fetch chat history: ${historyResponse.status} - ${errorText}`)
+        const errorText = await historyResponse.text();
+        console.error("Chat history error:", errorText);
+        throw new Error(
+          `Failed to fetch chat history: ${historyResponse.status} - ${errorText}`
+        );
       }
-      
-      const chatHistory = await historyResponse.json()
-      console.log("Chat history fetched:", chatHistory)
-      
+
+      const chatHistory = await historyResponse.json();
+      console.log("Chat history fetched:", chatHistory);
+
       // Validate the format before sending
       if (!chatHistory.mentee_id || !Array.isArray(chatHistory.conversation)) {
-        console.error("Invalid chat history format:", chatHistory)
-        throw new Error("Invalid chat history format received")
+        console.error("Invalid chat history format:", chatHistory);
+        throw new Error("Invalid chat history format received");
       }
-      
-      console.log("Sending to AI roadmap generation...")
-      
+
+      console.log("Sending to AI roadmap generation...");
+
       // Then, send it to the AI roadmap generation endpoint
-      const roadmapResponse = await fetch("http://localhost:5000/api/ai/roadmap", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(chatHistory),
-      })
-      
-      console.log("Roadmap response status:", roadmapResponse.status)
-      
+      const roadmapResponse = await fetch(
+        "http://localhost:5000/api/ai/roadmap",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(chatHistory),
+        }
+      );
+
+      console.log("Roadmap response status:", roadmapResponse.status);
+
       if (!roadmapResponse.ok) {
-        const errorText = await roadmapResponse.text()
-        console.error("Roadmap generation error:", errorText)
-        throw new Error(`Roadmap generation failed: ${roadmapResponse.status} - ${errorText}`)
+        const errorText = await roadmapResponse.text();
+        console.error("Roadmap generation error:", errorText);
+        throw new Error(
+          `Roadmap generation failed: ${roadmapResponse.status} - ${errorText}`
+        );
       }
-      
-      const result = await roadmapResponse.json()
-      console.log("Roadmap generation successful:", result)
-      
+
+      const result = await roadmapResponse.json();
+      console.log("Roadmap generation successful:", result);
+
       // Success
-      setRoadmapGenerated(true)
-      
+      setRoadmapGenerated(true);
     } catch (error) {
-      console.error("Error generating roadmap:", error)
-      
-      // More specific error messages
-      if (error.message.includes("Failed to fetch")) {
-        setError("Cannot connect to server. Please check if the backend is running on port 5000.")
-      } else if (error.message.includes("NetworkError")) {
-        setError("Network error. Please check your internet connection and server status.")
+      if (error instanceof Error) {
+        setError(`Failed to generate roadmap: ${error.message}`);
       } else {
-        setError(`Failed to generate roadmap: ${error.message}`)
+        setError("Failed to generate roadmap due to an unknown error");
       }
-      
-      setIsGeneratingRoadmap(false)
     }
-  }
+  };
+
+  const respondToMeetingRequest = async (
+    requestId: string,
+    action: string,
+    slot?: any
+  ) => {
+    await fetch("http://localhost:5000/api/scheduling/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        request_id: requestId,
+        action,
+        slot,
+      }),
+    });
+
+    if (selectedUser) {
+      await fetchMessages(selectedUser.id, 1, true);
+    }
+  };
 
   // Add this function after handleAIRoadmapGeneration
   const handleCloseSuccessModal = () => {
-    setIsGeneratingRoadmap(false)
-    setRoadmapGenerated(false)
-  }
+    setIsGeneratingRoadmap(false);
+    setRoadmapGenerated(false);
+  };
 
   // Handle mention trigger
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value
-    setMessage(val)
+    const val = e.target.value;
+    setMessage(val);
     // Show mention if last char is '@' and not already present
     if (val.endsWith("@") && !val.includes("@AI Assistant")) {
-      setShowAIMention(true)
+      setShowAIMention(true);
     } else {
-      setShowAIMention(false)
+      setShowAIMention(false);
     }
-  }
+  };
 
   // Handle mention selection with keyboard
   const handleMentionKeyDown = (e: React.KeyboardEvent) => {
     if (showAIMention) {
       if (e.key === "Enter" || e.key === "Tab") {
-        e.preventDefault()
-        insertAIAssistantMention()
+        e.preventDefault();
+        insertAIAssistantMention();
       } else if (e.key === "Escape") {
-        setShowAIMention(false)
+        setShowAIMention(false);
       }
     } else {
       if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        handleSendMessage()
+        e.preventDefault();
+        handleSendMessage();
       }
     }
-  }
+  };
 
   // Insert @AI Assistant at cursor
   const insertAIAssistantMention = () => {
-    if (!textareaRef.current) return
-    const textarea = textareaRef.current
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const value = message
+    if (!textareaRef.current) return;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = message;
     // Replace last '@' with '@AI Assistant'
-    const atIdx = value.lastIndexOf("@")
+    const atIdx = value.lastIndexOf("@");
     const newValue =
-      value.substring(0, atIdx) + "@AI Assistant " + value.substring(end)
-    setMessage(newValue)
-    setShowAIMention(false)
+      value.substring(0, atIdx) + "@AI Assistant " + value.substring(end);
+    setMessage(newValue);
+    setShowAIMention(false);
     // Move cursor after inserted mention
     setTimeout(() => {
-      textarea.focus()
+      textarea.focus();
       textarea.selectionStart = textarea.selectionEnd =
-        atIdx + "@AI Assistant ".length
-    }, 0)
-  }
+        atIdx + "@AI Assistant ".length;
+    }, 0);
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+      e.preventDefault();
+      handleSendMessage();
     }
-  }
+  };
 
   // Don't render anything until mounted to prevent hydration mismatch
   if (!hasMounted) {
-    return null
+    return null;
   }
 
   return (
-    <DashboardLayout userRole={userRole}>
+    <DashboardLayout
+      userRole={userRole}
+      userName={userName}
+      userEmail={userEmail}
+    >
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Chat</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
-            {userRole === "mentor" 
-              ? "Select a mentee to chat with. Use @AI Assistant to generate roadmaps!" 
+            {userRole === "mentor"
+              ? "Select a mentee to chat with. Use @AI Assistant to generate roadmaps!"
               : "Chat with your mentor"}
           </p>
         </div>
@@ -503,8 +568,8 @@ export default function ChatPage() {
                   AI Roadmap Generation
                 </CardTitle>
                 <CardDescription className="text-center">
-                  {roadmapGenerated 
-                    ? "Roadmap generated successfully!" 
+                  {roadmapGenerated
+                    ? "Roadmap generated successfully!"
                     : "Creating a personalized roadmap based on your conversation..."}
                 </CardDescription>
               </CardHeader>
@@ -530,10 +595,11 @@ export default function ChatPage() {
                       Roadmap Generated Successfully!
                     </h2>
                     <p className="text-center text-gray-600 mb-6">
-                      The personalized roadmap has been created and updated based on your conversation with {selectedUser?.name}.
+                      The personalized roadmap has been created and updated
+                      based on your conversation with {selectedUser?.name}.
                     </p>
                     <div className="flex gap-3 w-full">
-                      <Button 
+                      <Button
                         onClick={handleCloseSuccessModal}
                         className="flex-1 bg-green-500 hover:bg-green-600 text-white"
                       >
@@ -563,8 +629,14 @@ export default function ChatPage() {
                         selectedUser?.id === mentee.id
                           ? "bg-purple-100 dark:bg-purple-900"
                           : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                      } ${isGeneratingRoadmap ? "pointer-events-none opacity-50" : ""}`}
-                      onClick={() => !isGeneratingRoadmap && setSelectedUser(mentee)}
+                      } ${
+                        isGeneratingRoadmap
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }`}
+                      onClick={() =>
+                        !isGeneratingRoadmap && setSelectedUser(mentee)
+                      }
                     >
                       <Avatar>
                         <AvatarFallback>
@@ -616,7 +688,9 @@ export default function ChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle>{selectedUser?.name || "Select a conversation"}</CardTitle>
+                  <CardTitle>
+                    {selectedUser?.name || "Select a conversation"}
+                  </CardTitle>
                   <CardDescription>
                     {selectedUser ? `@${selectedUser.username}` : ""}
                   </CardDescription>
@@ -624,8 +698,10 @@ export default function ChatPage() {
               </div>
             </CardHeader>
 
-            <CardContent 
-              className={`flex-1 overflow-y-auto p-4 space-y-4 ${isGeneratingRoadmap ? "pointer-events-none opacity-50" : ""}`}
+            <CardContent
+              className={`flex-1 overflow-y-auto p-4 space-y-4 ${
+                isGeneratingRoadmap ? "pointer-events-none opacity-50" : ""
+              }`}
               ref={chatContainerRef}
             >
               {!selectedUser ? (
@@ -641,15 +717,20 @@ export default function ChatPage() {
                       Loading older messages...
                     </div>
                   )}
-                  
+
                   {messages.map((msg) => {
-                    const isMe = msg.sender_id === userId
-                    const containsAIAssistant = msg.content.includes("@AI Assistant")
-                    
+                    const isMe = msg.sender_id === userId;
+                    const isMeetingRequest =
+                      msg.meta?.kind === "meeting_request";
+                    const containsAIAssistant =
+                      msg.content.includes("@AI Assistant");
+
                     return (
-                      <div 
-                        key={msg._id} 
-                        className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                      <div
+                        key={msg._id}
+                        className={`flex ${
+                          isMe ? "justify-end" : "justify-start"
+                        }`}
                       >
                         <div
                           className={`max-w-[70%] p-3 rounded-2xl ${
@@ -660,25 +741,41 @@ export default function ChatPage() {
                               : "bg-[#1B1A55] text-white rounded-bl-md"
                           }`}
                         >
-                          <p className="text-sm whitespace-pre-wrap">
-                            {containsAIAssistant && isMe ? (
-                              <>
-                                {msg.content.split("@AI Assistant").map((part, index, array) => (
-                                  <span key={index}>
-                                    {part}
-                                    {index < array.length - 1 && (
-                                      <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-1 rounded text-xs font-semibold">
-                                        <Sparkles className="h-3 w-3" />
-                                        AI Assistant
+                          {isMeetingRequest ? (
+                            <MeetingRequestCard
+                              request={msg.meta}
+                              userRole={userRole}
+                              onRespond={(action, slot) =>
+                                respondToMeetingRequest(
+                                  msg.meta.request_id,
+                                  action,
+                                  slot
+                                )
+                              }
+                            />
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">
+                              {containsAIAssistant && isMe ? (
+                                <>
+                                  {msg.content
+                                    .split("@AI Assistant")
+                                    .map((part, index, array) => (
+                                      <span key={index}>
+                                        {part}
+                                        {index < array.length - 1 && (
+                                          <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-1 rounded text-xs font-semibold">
+                                            <Sparkles className="h-3 w-3" />
+                                            AI Assistant
+                                          </span>
+                                        )}
                                       </span>
-                                    )}
-                                  </span>
-                                ))}
-                              </>
-                            ) : (
-                              msg.content
-                            )}
-                          </p>
+                                    ))}
+                                </>
+                              ) : (
+                                msg.content
+                              )}
+                            </p>
+                          )}
                           <p className="text-xs text-white/70 mt-1">
                             {new Date(msg.timestamp).toLocaleTimeString([], {
                               hour: "2-digit",
@@ -687,19 +784,23 @@ export default function ChatPage() {
                           </p>
                         </div>
                       </div>
-                    )
+                    );
                   })}
-                  
+
                   <div ref={messagesEndRef} />
                 </>
               )}
             </CardContent>
 
-            <div className={`border-t p-4 ${isGeneratingRoadmap ? "pointer-events-none opacity-50" : ""}`}>
+            <div
+              className={`border-t p-4 ${
+                isGeneratingRoadmap ? "pointer-events-none opacity-50" : ""
+              }`}
+            >
               <div className="flex items-end w-full space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="icon" 
+                <Button
+                  variant="outline"
+                  size="icon"
                   className="shrink-0"
                   disabled={isGeneratingRoadmap}
                 >
@@ -710,8 +811,8 @@ export default function ChatPage() {
                   <Textarea
                     ref={textareaRef}
                     placeholder={
-                      selectedUser 
-                        ? `Message ${selectedUser.name}...` 
+                      selectedUser
+                        ? `Message ${selectedUser.name}...`
                         : "Select a user to start chatting"
                     }
                     value={message}
@@ -725,9 +826,9 @@ export default function ChatPage() {
                     <div className="absolute left-2 bottom-12 z-50 bg-white dark:bg-gray-900 border rounded shadow p-2 w-48">
                       <div
                         className="flex items-center gap-2 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-900 rounded px-2 py-1"
-                        onMouseDown={e => {
-                          e.preventDefault()
-                          insertAIAssistantMention()
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          insertAIAssistantMention();
                         }}
                       >
                         <Sparkles className="h-4 w-4 text-purple-500" />
@@ -751,5 +852,5 @@ export default function ChatPage() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

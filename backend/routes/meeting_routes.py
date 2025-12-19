@@ -86,7 +86,7 @@ def get_meetings(current_user):
 
         result.append({
             "meeting_id": str(meeting['_id']),
-            "title": meeting['title'],
+            "title": meeting.get('title', 'Scheduled Meeting'),
             "description": meeting.get('description', ''),
             "meeting_link": meeting.get('meeting_link', ''),
             "start_time": meeting['start_time'].isoformat(),
@@ -200,7 +200,7 @@ def cancel_meeting(current_user, meeting_id):
             'type': 'meeting_cancelled',
             'from_user_id': user_id,
             'to_user_id': meeting['mentee_id'],
-            'meeting_title': meeting['title'],
+            'meeting_title': meeting.get('title', 'Scheduled Meeting'),
             'meeting_id': meeting_id,
             'created_at': datetime.datetime.utcnow(),
             'read': False
@@ -237,7 +237,7 @@ def get_upcoming_meetings(current_user):
 
         result.append({
             "meeting_id": str(meeting['_id']),
-            "title": meeting['title'],
+            "title": meeting.get('title', 'Scheduled Meeting'),
             "description": meeting.get('description', ''),
             "meeting_link": meeting.get('meeting_link', ''),
             "start_time": meeting['start_time'].isoformat(),
@@ -276,7 +276,7 @@ def get_past_meetings(current_user):
 
         result.append({
             "meeting_id": str(meeting['_id']),
-            "title": meeting['title'],
+            "title": meeting.get('title', 'Scheduled Meeting'),
             "description": meeting.get('description', ''),
             "meeting_link": meeting.get('meeting_link', ''),
             "start_time": meeting['start_time'].isoformat(),
@@ -318,7 +318,7 @@ def get_current_meetings(current_user):
 
         result.append({
             "meeting_id": str(meeting['_id']),
-            "title": meeting['title'],
+            "title": meeting.get('title', 'Scheduled Meeting'),
             "description": meeting.get('description', ''),
             "meeting_link": meeting.get('meeting_link', ''),
             "start_time": meeting['start_time'].isoformat(),
