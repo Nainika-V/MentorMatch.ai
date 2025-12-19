@@ -11,6 +11,7 @@ def send_message(sender_id, receiver_id, content, meta=None, message_type="user"
         'receiver_id': receiver_id,
         'participants': sorted([str(x) for x in participants_override]) if participants_override else sorted([str(sender_id), str(receiver_id)]),
         'content': content,
+        'type': message_type,
         'meta': meta or {},
         'timestamp': datetime.datetime.utcnow()
     }
@@ -21,10 +22,13 @@ def send_message(sender_id, receiver_id, content, meta=None, message_type="user"
 
 def get_chats(user_id, other_id, page=1):
     # Get messages where (sender==user and receiver==other) OR (sender==other and receiver==user)
+    # OR system messages where participants contains both users
     query = {
-        'participants': {
-            '$all': [str(user_id), str(other_id)]
-        }
+        '$or': [
+            {'sender_id': user_id, 'receiver_id': other_id},
+            {'sender_id': other_id, 'receiver_id': user_id},
+            {'participants': {'$all': [str(user_id), str(other_id)]}}
+        ]
     }
 
     skip = (page - 1) * PAGE_SIZE

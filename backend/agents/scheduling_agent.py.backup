@@ -95,32 +95,21 @@ class SchedulingAgent:
         print(
             f"Mentor ID: {mentor_id}, Mentee ID: {mentee_id}, Reason: {reason}")
 
-        # Check for upcoming scheduled meetings - don't create if exists
-        upcoming_meeting = meetings.find_one(
-            {
-                "mentor_id": mentor_id,
-                "mentee_id": mentee_id,
-                "status": "scheduled",
-                "start_time": {"$gt": datetime.datetime.utcnow()}
-            }
-        )
-        if upcoming_meeting:
-            print(f"INFO: Upcoming scheduled meeting found. Not creating new request.")
-            return
-
-        # Override any existing pending requests
-        existing_pending = meeting_requests.find_one(
+        # Prevent duplicates
+        existing = meeting_requests.find_one(
             {
                 "mentor_id": mentor_id,
                 "mentee_id": mentee_id,
                 "status": {"$in": ["pending_mentor", "pending_mentee"]},
             }
         )
-        if existing_pending:
-            print(f"INFO: Overriding existing pending meeting request ({existing_pending['_id']}).")
-            meeting_requests.delete_one({"_id": existing_pending["_id"]})
+        if existing:
+            print(
+                f"INFO: Existing pending meeting request found ({existing['_id']}). Not creating a new one.")
+            return
 
-        print("INFO: Proceeding to create new meeting request.")
+        print("INFO: No existing pending meeting request found. Proceeding.")
+
         mentor = users.find_one({"_id": ObjectId(mentor_id)})
         mentee = users.find_one({"_id": ObjectId(mentee_id)})
 
