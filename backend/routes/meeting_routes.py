@@ -6,6 +6,7 @@ import uuid
 from database.db import meetings, users, notifications
 from middleware.auth_middleware import token_required
 from services.daily_service import create_daily_room, generate_meeting_token
+from agents.transcript_processing_agent import process_transcript_in_background
 
 meeting_bp = Blueprint('meetings', __name__)
 
@@ -365,6 +366,9 @@ def save_transcript(current_user, meeting_id):
                 }
             }
         )
+
+        # Trigger the transcript processing agent in the background
+        process_transcript_in_background(meeting_id)
 
         return jsonify({'message': 'Transcript saved successfully'}), 200
     except Exception as e:

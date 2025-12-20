@@ -3,6 +3,7 @@ from services.ai_service import update_roadmap
 import json
 from bson import ObjectId
 from datetime import datetime
+from database.db import pending_roadmap_updates, roadmaps
 
 def make_serializable(obj):
     if isinstance(obj, list):
@@ -51,6 +52,31 @@ def suggest_roadmap_update_from_assessment(roadmap_id: str,
          except Exception as e:
             print(f"Error suggesting roadmap update: {e}")
             return None, str(e)
+
+def create_pending_roadmap_update(roadmap_id, suggested_changes):
+    """
+    Creates a new pending roadmap update record in the database.
+    """
+    pending_update = {
+        "roadmap_id": ObjectId(roadmap_id),
+        "suggested_changes": suggested_changes,
+        "status": "pending",
+        "created_at": datetime.utcnow()
+    }
+    result = pending_roadmap_updates.insert_one(pending_update)
+    return result.inserted_id
+
+def apply_roadmap_update(roadmap_id, suggested_changes):
+    """
+    Applies the suggested changes to the roadmap.
+    """
+    roadmaps.update_one(
+        {'_id': ObjectId(roadmap_id)},
+        {'$set': {
+            'modules': suggested_changes['modules'],
+            'updated_at': datetime.utcnow()
+        }}
+    )
 
 
     

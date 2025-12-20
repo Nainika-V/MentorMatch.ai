@@ -6,6 +6,7 @@ class RoadmapModel:
     @staticmethod
     def create_roadmap(mentee_id, mentor_id, duration_weeks, modules,
                        interview_type="progress_based", trigger_point="50%") -> dict:
+        now = datetime.utcnow()
         roadmap_doc = {
             "menteeId": ObjectId(mentee_id),
             "status": "in-progress",
@@ -20,16 +21,26 @@ class RoadmapModel:
                 "triggerPoint": trigger_point
             },
             "modules": modules,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": now,
+            "updated_at": now,
+            "last_module_completed_at": now  # Initialize on creation
         }
 
         result = roadmaps.insert_one(roadmap_doc)
-        return roadmaps.find_one({"_id": result.inserted_id}) 
+        return roadmaps.find_one({"_id": result.inserted_id})
+
+    @staticmethod
+    def update_last_module_completed(roadmap_id):
+        """Update the last_module_completed_at timestamp for a roadmap"""
+        return roadmaps.update_one(
+            {"_id": ObjectId(roadmap_id)},
+            {"$set": {"last_module_completed_at": datetime.utcnow()}}
+        )
 
     @staticmethod
     def get_roadmaps_by_mentee(mentee_id):
         return list(roadmaps.find({"menteeId": ObjectId(mentee_id)}))
+
 
     @staticmethod
     def update_roadmap_status(roadmap_id, new_status):

@@ -10,3 +10,5 @@ gTTS
 google-generativeai
 requests
 langchain-core
+APScheduler==3.10.4
+google-cloud-aiplatform

@@ -37,6 +37,9 @@ def token_required(f):
             if not current_user:
                 raise CustomError("User not found", 401)
 
+            # Update last login timestamp
+            UserModel.update_last_login(user_id)
+
             # Attach to Flask global context
             g.current_user = current_user
 

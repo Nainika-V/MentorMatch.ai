@@ -490,6 +490,24 @@ def submit_mcq_score(roadmap_id, module_index, current_user):
 
             # Customize notification based on score
             if score >= 80:
+                # --- AGENT LOGIC INTEGRATION ---
+                # If the user passed, mark the module as complete.
+                now = datetime.datetime.utcnow()
+                
+                # 1. Update the specific module to set completed = True and add completion date
+                roadmaps.update_one(
+                    {'_id': ObjectId(roadmap_id)},
+                    {'$set': {
+                        f'modules.{module_index}.completed': True,
+                        f'modules.{module_index}.completed_at': now,
+                        'updated_at': now
+                    }}
+                )
+                
+                # 2. Update the parent roadmap document's timestamp for the stagnation check
+                RoadmapModel.update_last_module_completed(roadmap_id)
+                # --- END AGENT LOGIC ---
+
                 notification_type = 'assessment_passed'
                 message = f"{mentee_name} passed the assessment for '{module_title}' with a score of {score}%."
             else:

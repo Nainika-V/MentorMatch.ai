@@ -14,6 +14,7 @@ from routes.ai_routes import ai_bp
 from routes.notification_routes import notification_bp
 from routes.dashboard_routes import dashboard_bp
 from routes.scheduling_routes import scheduling_bp
+from routes.approval_routes import approval_bp
 from tasks.schedule_checker import check_inactivity
 
 # Load environment variables
@@ -43,11 +44,23 @@ app.register_blueprint(ai_bp, url_prefix='/api/ai')
 app.register_blueprint(notification_bp, url_prefix='/api/notifications')
 app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 app.register_blueprint(scheduling_bp, url_prefix="/api/scheduling")
+app.register_blueprint(approval_bp, url_prefix='/api/approvals')
+
+# --- Scheduler Setup for Progress Agent ---
+from apscheduler.schedulers.background import BackgroundScheduler
+from agents.progress_agent import check_all_mentees_progress
+
+scheduler = BackgroundScheduler(daemon=True)
+# Runs every 24 hours
+scheduler.add_job(check_all_mentees_progress, 'interval', hours=24)
+scheduler.start()
+# --- End Scheduler Setup ---
 
 
 @app.route('/')
 def index():
     return jsonify({"message": "Welcome to MentorMatch.ai API"})
+
 
 # Add route to serve audio files
 

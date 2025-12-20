@@ -7,8 +7,10 @@ class UserModel:
     @staticmethod
     def create_user(user_data):
         """Create a new user in the database"""
-        user_data['created_at'] = datetime.utcnow()
-        user_data['updated_at'] = datetime.utcnow()
+        now = datetime.utcnow()
+        user_data['created_at'] = now
+        user_data['updated_at'] = now
+        user_data['last_login_at'] = now  # Set last login on creation
 
         # Set default values based on role
         if user_data['role'] == 'mentor':
@@ -36,6 +38,15 @@ class UserModel:
 
         result = users.insert_one(user_data)
         return users.find_one({'_id': result.inserted_id})
+
+    @staticmethod
+    def update_last_login(user_id):
+        """Update the last_login_at timestamp for a user"""
+        return users.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {'last_login_at': datetime.utcnow()}}
+        )
+
 
     @staticmethod
     def get_user_by_email(email):

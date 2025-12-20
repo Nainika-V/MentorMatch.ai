@@ -159,3 +159,23 @@ This feature will suggest that the mentor schedule a meeting after the mentee re
         ```
 
 This detailed plan provides a clear path to implementing the required features by enhancing your existing backend services and routes.
+
+
+Build a `ProgressAndAccountabilityAgent`:
+       * Concept: This agent's goal is to keep the mentee engaged and on
+         track.
+       * Autonomous Actions: It would send personalized reminders and
+         motivational messages based on the mentee's progress and roadmap
+         deadlines. If it detects a mentee has been inactive for several
+         days, it could send a friendly nudge or even alert the mentor
+         that their mentee might need some encouragement.
+
+   * Create a `ContentCurationAgent`:
+       * Concept: This agent's goal is to keep the platform's learning
+         resources up-to-date.
+       * Autonomous Actions: On a schedule (e.g., weekly), it would use
+         the Serper API to scan the web for new, high-quality articles,
+         tutorials, and open-source projects related to the skills listed
+         on the platform. It could then automatically categorize these
+         resources and suggest them for inclusion in relevant roadmaps.
+
